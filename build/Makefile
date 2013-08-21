@@ -1,5 +1,7 @@
 VPATH=../src
 objects = messenger.o population.o individual.o nodemanager.o
+CXXFLAGS = -std=c++11
+
 
 all: $(objects)
 	ar cq libdgal.a $(objects)
