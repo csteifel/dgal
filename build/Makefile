@@ -1,12 +1,12 @@
 VPATH=../src
-objects = messaging.o population.o individual.o nodemanager.o
+objects = messenger.o population.o individual.o nodemanager.o
 
 all: $(objects)
 	ar cq libdgal.a $(objects)
 	@echo "Library built"
 
 
-messaging.o: messaging.cpp messaging.h
+messenger.o: messenger.cpp messenger.h
 population.o: population.cpp population.h
 individual.o: individual.cpp individual.h
 nodemanager.o: nodemanager.cpp nodemanager.h
