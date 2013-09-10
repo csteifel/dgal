@@ -1,6 +1,6 @@
 VPATH=../src
 objects = messenger.o population.o individual.o nodemanager.o
-CXXFLAGS = -std=c++11
+CXXFLAGS = -std=c++11 -Wall -Wextra -pthread
 
 
 all: $(objects)

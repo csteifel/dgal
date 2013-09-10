@@ -1,8 +1,8 @@
 VPATH=../build:../src
 objects = main.o
-includes = 
+includes = -I../src/
 libs = -L../build -ldgal
-CXXFLAGS = -Wall -Wextra $(includes) $(libs)
+CXXFLAGS = -std=c++11 -Wall -Wextra -pthread $(includes) $(libs)
 
 all: $(objects)
 	$(CXX) $(CXXFLAGS) -o test.out $(objects)
