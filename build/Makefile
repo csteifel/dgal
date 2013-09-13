@@ -1,10 +1,11 @@
 VPATH=../src
 objects = messenger.o population.o individual.o nodemanager.o
-CXXFLAGS = -std=c++11 -Wall -Wextra -pthread
+CXXFLAGS = -std=c++11 -Wall -Wextra
+LDLIBS = -pthread
 
 
 all: $(objects)
-	ar cq libdgal.a $(objects)
+	ar cr libdgal.a $(objects)
 	@echo "Library built"
 
 
