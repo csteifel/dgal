@@ -1,5 +1,5 @@
 VPATH=../src
-objects = messenger.o population.o individual.o nodemanager.o
+objects = messenger.o individual.o
 CXXFLAGS = -std=c++11 -Wall -Wextra
 LDLIBS = -pthread
 
@@ -10,9 +10,7 @@ all: $(objects)
 
 
 messenger.o: messenger.cpp messenger.h
-population.o: population.cpp population.h
 individual.o: individual.cpp individual.h
-nodemanager.o: nodemanager.cpp nodemanager.h
 
 
 clean:
