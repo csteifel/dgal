@@ -8,7 +8,7 @@ all: $(objects)
 	$(CXX) $(CXXFLAGS) -o test.out $(objects) $(LDLIBS)
 	@echo "Tests built"
 
-main.o: main.cpp
+main.o: main.cpp nodemanager.h population.h
 
 clean:
 	-rm -f *.o
