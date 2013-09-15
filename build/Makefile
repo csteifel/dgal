@@ -17,3 +17,4 @@ nodemanager.o: nodemanager.cpp nodemanager.h
 
 clean:
 	-rm -f *.o
+	-rm -f libdgal.a
