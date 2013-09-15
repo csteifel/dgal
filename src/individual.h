@@ -1,6 +1,7 @@
 #ifndef INDIVIDUAL_H
 #define INDIVIDUAL_H
 
+#include <memory>
 #include <vector>
 #include <string>
 #include <iostream>
@@ -9,15 +10,19 @@ namespace dgal {
 	class individual {
 		public:
 			individual() = delete;
-			individual(const int numWeights);
-			individual(const std::string serialized, const double preCalcedFitness);
-			individual(const dgal::individual * parentA, const dgal::individual * parentB){std::cout << "individual constructor" << std::endl;}
+			individual(const size_t numWeights);
+			individual(const std::shared_ptr<dgal::individual> parentA, const std::shared_ptr<dgal::individual> parentB);
 
-			virtual std::string serialize() const = 0;
+//			virtual void createFromSerialized(const std::string serialized) = 0;
+//			virtual std::string serialize() const = 0;
 			double getFitness() const {return fitness;}
 		protected:
+//			virtual void mutate();
+
 			double fitness;
 			std::vector<double> weights;
+
+			bool fitnessPreCalced = false;
 	};
 
 }
