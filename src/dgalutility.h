@@ -1,3 +1,6 @@
+#ifndef DGALUTILITY_H
+#define DGALUTILITY_H
+
 #include <iostream>
 #include <string>
 
@@ -14,3 +17,4 @@ namespace dgal {
 #endif
 
 }
+#endif
