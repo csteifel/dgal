@@ -26,8 +26,8 @@ namespace dgal {
 
 	bool individual::operator<(const dgal::individual& compareTo) const {
 		if(getFitness() < compareTo.getFitness()){
-			return false;
+			return true;
 		}
-		return true;
+		return false;
 	}
 }
