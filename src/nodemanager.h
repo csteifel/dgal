@@ -7,6 +7,8 @@
 #include <ctime>
 #include "messenger.h"
 #include "population.h"
+#include "dgalutility.h"
+
 
 namespace dgal {
 	template <typename indType> class nodeManager {
@@ -14,7 +16,7 @@ namespace dgal {
 			nodeManager();
 			void initialize();
 		private:
-			//dgal::population<indType> pop;
+			dgal::population<indType> pop;
 			std::unique_ptr<dgal::messenger> nodeMessenging;
 	};
 
@@ -26,9 +28,8 @@ namespace dgal {
 
 	template <typename indType> void nodeManager<indType>::initialize(){
 		//TODO: this is included because of temporary random generation scheme that should be replaced
+		dgal::log("Node manager started");
 		std::srand(std::time(0));
-
-		std::cout << "TEST" << std::endl;
 	}
 
 }
