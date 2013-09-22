@@ -16,9 +16,8 @@ namespace dgal {
 //			virtual void createFromSerialized(const std::string serialized) = 0;
 //			virtual std::string serialize() const = 0;
 			virtual void run() = 0;
-			
+
 			double getFitness() const {return fitness;}
-			bool operator<(const dgal::individual& compareTo) const;
 		protected:
 //			virtual void mutate();
 
@@ -29,4 +28,5 @@ namespace dgal {
 	};
 
 }
+
 #endif

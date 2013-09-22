@@ -22,12 +22,4 @@ namespace dgal {
 			weights[i] = (i < cutOff) ? parentA->weights[i] : parentB->weights[i];
 		}
 	}
-
-
-	bool individual::operator<(const dgal::individual& compareTo) const {
-		if(getFitness() < compareTo.getFitness()){
-			return true;
-		}
-		return false;
-	}
 }
