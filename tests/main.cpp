@@ -1,8 +1,12 @@
 #include "nodemanager.h"
+#include "messenger.h"
 #include <string>
 #include <iostream>
 #include <random>
 #include <ctime>
+#include <utility>
+
+
 
 class test : public dgal::individual {
 	public:
@@ -13,6 +17,18 @@ class test : public dgal::individual {
 
 		void run(){ fitness = rand(); }
 };
+
+class aaa : public dgal::messenger {
+	public:
+		virtual void getBests(std::vector<std::pair<std::string, double> >& bests) const {
+			bests.push_back(std::make_pair("test", 1));
+			std::cout << "tasfasdsadfasdf" << std::endl;
+		}
+		virtual void sendBests(const std::vector<std::pair<std::string, double> >& bests) const {
+			(void) bests;
+		}
+};
+
 
 int main(){
 
@@ -30,17 +46,10 @@ int main(){
 	B->print();
 	std::cout << "C:\n";
 	C->print();
-
-
 	//End testing of individuals
 	
-	
-
 	//Start testing of node manager
-	
-	dgal::nodeManager<test> node;
-
-	
+	dgal::nodeManager<test, aaa> node;
 
 	return 0;
 }
