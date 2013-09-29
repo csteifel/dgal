@@ -13,8 +13,8 @@ namespace dgal {
 		*/
 		public:
 			//Get bests from other nodes
-			virtual std::vector<std::string> getBests(std::vector<std::pair<std::string, double> >& bests) const = 0;
-			virtual std::vector<std::string> sendBests(const std::vector<std::pair<std::string, double> >& bests) const = 0;
+			virtual void getBests(std::vector<std::pair<std::string, double> >& bests) const = 0;
+			virtual void sendBests(const std::vector<std::pair<std::string, double> >& bests) const = 0;
 		private:
 	};
 }
