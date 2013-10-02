@@ -1,4 +1,4 @@
-#include "nodemanager.h"
+#include "population.h"
 #include "messenger.h"
 #include <string>
 #include <iostream>
@@ -48,8 +48,11 @@ int main(){
 	C->print();
 	//End testing of individuals
 	
+
+	dgal::population<test, aaa> pop;
+
 	//Start testing of node manager
-	dgal::nodeManager<test, aaa> node;
+	//dgal::nodeManager<test, aaa> node;
 
 	return 0;
 }

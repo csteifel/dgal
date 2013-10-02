@@ -2,6 +2,7 @@
 #define INDIVIDUAL_H
 
 #include <memory>
+#include <random>
 #include <vector>
 #include <string>
 #include <iostream>

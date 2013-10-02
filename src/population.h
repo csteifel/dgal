@@ -1,16 +1,19 @@
 #ifndef POPULATION_H
 #define POPULATION_H
 
-#include "individual.h"
 #include <vector>
 #include <utility>
 #include <algorithm>
 #include <atomic>
+#include <ctime>
+#include <thread>
+#include <memory>
+#include <random>
+#include "individual.h"
 #include "dgalutility.h"
-#include <unistd.h>
 
 namespace dgal {
-	template <typename indType> class population {
+	template <typename indType, typename messagingType> class population {
 		typedef std::shared_ptr<indType> custIndPtr;
 		public:
 			population();
@@ -21,6 +24,7 @@ namespace dgal {
 			void generateNewIndividuals();
 			void chooseParents();
 			void run();
+			void initiateMessaging();
 			//virtual bool checkGoals() const;
 
 			std::vector<custIndPtr> individuals;
@@ -32,17 +36,40 @@ namespace dgal {
 			size_t generationNum = 0;
 			size_t maxGeneration = 10;
 
+			bool stop = false;
+
 	};
 
-	template <typename indType> population<indType>::population(){
+	template <typename indType, typename messagingType> population<indType, messagingType>::population(){
 		bufferDirty.store(false);
 		if(generationNum == 0){
 			generateNewIndividuals();
 		}
+
+		std::srand(std::time(0));
+
+		std::thread t(&population<indType, messagingType>::initiateMessaging, this);
 		run();
+		stop = true;
+		t.join();
 	}
 
-	template <typename indType> void population<indType>::addOutsideBests(const std::vector<std::pair<std::string, double> >& outsiders){
+	template <typename indType, typename messagingType> void population<indType, messagingType>::initiateMessaging(){
+		//TODO: implement
+		messagingType messageController;
+		std::vector<std::pair<std::string, double> > bestContainer;
+		while(true){
+			messageController.getBests(bestContainer);
+			
+			bestContainer.clear();
+			if(stop){
+				return;
+			}
+		}
+	}
+
+
+	template <typename indType, typename messagingType> void population<indType, messagingType>::addOutsideBests(const std::vector<std::pair<std::string, double> >& outsiders){
 		for(size_t i = 0; i < outsiders.size(); i++){
 			custIndPtr recieved(new indType(outsiders[i].first, outsiders[i].second));
 			individualBuffer.push_back(std::move(recieved));
@@ -50,7 +77,7 @@ namespace dgal {
 		bufferDirty.store(true);
 	}
 
-	template <typename indType> void population<indType>::nextGeneration(){
+	template <typename indType, typename messagingType> void population<indType, messagingType>::nextGeneration(){
 		//Pick out bests if not just starting up
 		chooseParents();
 
@@ -71,18 +98,18 @@ namespace dgal {
 	
 	}
 
-	template <typename indType> void population<indType>::generateNewIndividuals(){
+	template <typename indType, typename messagingType> void population<indType, messagingType>::generateNewIndividuals(){
 		while(individuals.size() < numIndividuals){
 			dgal::log("Adding individual");
 			individuals.push_back(custIndPtr(new indType));
 		}
 	}
 
-	template <typename indType> void population<indType>::chooseParents(){
+	template <typename indType, typename messagingType> void population<indType, messagingType>::chooseParents(){
 		//TODO: implement
 	}
 
-	template <typename indType> void population<indType>::run(){
+	template <typename indType, typename messagingType> void population<indType, messagingType>::run(){
 		dgal::log("Running generation " + std::to_string(generationNum));
 
 		//Run this generation
