@@ -1,7 +1,6 @@
 VPATH=../build:../src
 objects = main.o
 includes = -I../src/
-LDLIBS = -L../build -ldgal
 CXXFLAGS = -std=c++11 -Wall -Wextra -DDEBUG -pthread $(includes) $(libs)
 
 all: $(objects)
