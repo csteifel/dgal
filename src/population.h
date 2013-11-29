@@ -25,7 +25,7 @@ namespace dgal {
 			void chooseParents();
 			void run();
 			void initiateMessaging();
-			//virtual bool checkGoals() const;
+			virtual bool checkGoals() const;
 
 			std::vector<custIndPtr> individuals;
 			//Individual buffer for holding bests from other nodes until used.
@@ -39,6 +39,7 @@ namespace dgal {
 			bool stop = false;
 
 	};
+
 
 	template <typename indType, typename messagingType> population<indType, messagingType>::population(){
 		bufferDirty.store(false);
@@ -67,7 +68,6 @@ namespace dgal {
 			}
 		}
 	}
-
 
 	template <typename indType, typename messagingType> void population<indType, messagingType>::addOutsideBests(const std::vector<std::pair<std::string, double> >& outsiders){
 		for(size_t i = 0; i < outsiders.size(); i++){
@@ -124,6 +124,10 @@ namespace dgal {
 			nextGeneration();
 			run();
 		}
+	}
+
+	template <typename indType, typname messagingType> virtual bool population<indType, messagingType>::checkGoals(){
+
 	}
 }
 
