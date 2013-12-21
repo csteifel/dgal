@@ -9,6 +9,7 @@
 #include <thread>
 #include <memory>
 #include <random>
+#include <fstream>
 #include "individual.h"
 #include "dgalutility.h"
 
@@ -19,29 +20,68 @@ namespace dgal {
 			population();
 			void addOutsideBests(const std::vector<std::pair<std::string, double> >& outsiders);
 		protected:
-			//virtual to allow for custom population controller
 			void nextGeneration();
 			void generateNewIndividuals();
 			void chooseParents();
 			void run();
 			void initiateMessaging();
-			virtual bool checkGoals() const;
+			bool checkGoals() const; //potentially virtual later 'to allow for custom population controller'
 
 			std::vector<custIndPtr> individuals;
 			//Individual buffer for holding bests from other nodes until used.
 			std::vector<custIndPtr > individualBuffer;
 			std::atomic<bool> bufferDirty;
 
+			time_t initTime;
 			size_t numIndividuals = 10;
 			size_t generationNum = 0;
-			size_t maxGeneration = 10;
+			size_t maxGeneration = -1;
+			size_t maxFitnessLevel = -1;
+			size_t maxTime = -1;
 
 			bool stop = false;
-
 	};
 
 
 	template <typename indType, typename messagingType> population<indType, messagingType>::population(){
+		time(&initTime);
+		dgal::log("Start time: " + std::string(ctime(&initTime)));
+		std::ifstream cfgFile("info.cfg");
+		if (!cfgFile){ 
+			dgal::log("ERROR: cannot find config file 'info.cfg'"); 
+			return;
+		}
+
+		std::string token, condition, goalCond;
+		double parameter;
+		goalCond = "Goal_Condition:";
+		while(cfgFile >> token){ //Ignore instructions to begin reading
+			if (token == "***"){
+				break;
+			}
+		}
+		while (cfgFile >> token){
+			if (token == goalCond){
+				cfgFile >> condition >> parameter;
+				if (condition == "numGen"){
+					maxGeneration = parameter;
+					dgal::log("Goal Condition set: Max number of generations = <to_string>");// + std::to_string(parameter))
+				}
+				else if (condition == "fitnessLevel"){
+					maxFitnessLevel = parameter;
+					dgal::log("Goal Condition set: Fitness level by most fit individual = <to_string>");// + std::to_string(parameter))
+				}
+				else if (condition == "time"){
+					maxTime = parameter;
+					dgal::log("Goal Condition set: Max amount of time can pass in seconds = <to_string>");// + std::to_string(parameter))
+				}
+				else if (condition == "manual"){
+					//TODO: implement
+				}
+			}
+		}
+		cfgFile.close();
+
 		bufferDirty.store(false);
 		if(generationNum == 0){
 			generateNewIndividuals();
@@ -49,10 +89,10 @@ namespace dgal {
 
 		std::srand(std::time(0));
 
-		std::thread t(&population<indType, messagingType>::initiateMessaging, this);
+//		std::thread t(&population<indType, messagingType>::initiateMessaging, this);
 		run();
 		stop = true;
-		t.join();
+//		t.join();
 	}
 
 	template <typename indType, typename messagingType> void population<indType, messagingType>::initiateMessaging(){
@@ -93,7 +133,7 @@ namespace dgal {
 
 
 		for(size_t i = 0; i < individuals.size(); i++){
-			dgal::log("Fitness " + std::to_string(individuals[i]->getFitness()));
+//			dgal::log("Fitness " + std::to_string(individuals[i]->getFitness()));
 		}
 	
 	}
@@ -110,7 +150,7 @@ namespace dgal {
 	}
 
 	template <typename indType, typename messagingType> void population<indType, messagingType>::run(){
-		dgal::log("Running generation " + std::to_string(generationNum));
+//		dgal::log("Running generation " + std::to_string(generationNum));
 
 		//Run this generation
 		//TODO: put in thread pool individual running
@@ -120,14 +160,17 @@ namespace dgal {
 
 		++generationNum;
 
-		if(generationNum < maxGeneration){
+		if(checkGoals() == false){
 			nextGeneration();
 			run();
 		}
 	}
 
-	template <typename indType, typname messagingType> virtual bool population<indType, messagingType>::checkGoals(){
-
+	template <typename indType, typename messagingType> bool population<indType, messagingType>::checkGoals() const{
+		if (maxGeneration != -1 && generationNum >= maxGeneration) { return true; }
+		else if (maxFitnessLevel != -1 && generationNum >= maxFitnessLevel) { return true; }
+		else if (maxTime != -1 && difftime(time(0), initTime) >= maxTime) { return true; }
+		return false;
 	}
 }
 
