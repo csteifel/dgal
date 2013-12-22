@@ -36,8 +36,6 @@ int main(){
 	std::srand(std::time(0));
 	std::shared_ptr<test> A(new test);
 	std::shared_ptr<test> B(new test);
-
-
 	std::shared_ptr<test> C(new test(A,B));
 
 	std::cout << "A:\n";
@@ -47,12 +45,12 @@ int main(){
 	std::cout << "C:\n";
 	C->print();
 	//End testing of individuals
-	
 
 	dgal::population<test, aaa> pop;
 
 	//Start testing of node manager
 	//dgal::nodeManager<test, aaa> node;
+	dgal::log("Finished");
 
 	return 0;
 }

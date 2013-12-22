@@ -32,7 +32,7 @@ namespace dgal {
 			std::vector<custIndPtr > individualBuffer;
 			std::atomic<bool> bufferDirty;
 
-			time_t initTime;
+			clock_t initClock;
 			size_t numIndividuals = 10;
 			size_t generationNum = 0;
 			size_t maxGeneration = -1;
@@ -44,8 +44,7 @@ namespace dgal {
 
 
 	template <typename indType, typename messagingType> population<indType, messagingType>::population(){
-		time(&initTime);
-		dgal::log("Start time: " + std::string(ctime(&initTime)));
+		initClock = clock();
 		std::ifstream cfgFile("info.cfg");
 		if (!cfgFile){ 
 			dgal::log("ERROR: cannot find config file 'info.cfg'"); 
@@ -65,15 +64,15 @@ namespace dgal {
 				cfgFile >> condition >> parameter;
 				if (condition == "numGen"){
 					maxGeneration = parameter;
-					dgal::log("Goal Condition set: Max number of generations = <to_string>");// + std::to_string(parameter))
+					dgal::log("Goal Condition set: Max number of generations = <to_string>parameter");// + std::to_string(parameter))
 				}
 				else if (condition == "fitnessLevel"){
 					maxFitnessLevel = parameter;
-					dgal::log("Goal Condition set: Fitness level by most fit individual = <to_string>");// + std::to_string(parameter))
+					dgal::log("Goal Condition set: Fitness level by most fit individual = <to_string>parameter");// + std::to_string(parameter))
 				}
 				else if (condition == "time"){
 					maxTime = parameter;
-					dgal::log("Goal Condition set: Max amount of time can pass in seconds = <to_string>");// + std::to_string(parameter))
+					dgal::log("Goal Condition set: Max amount of time can pass in seconds = <to_string>parameter");// + std::to_string(parameter))
 				}
 				else if (condition == "manual"){
 					//TODO: implement
@@ -133,7 +132,7 @@ namespace dgal {
 
 
 		for(size_t i = 0; i < individuals.size(); i++){
-//			dgal::log("Fitness " + std::to_string(individuals[i]->getFitness()));
+			dgal::log("Fitness <to_string>individual[i]->getFitness()");// + std::to_string(individuals[i]->getFitness()));
 		}
 	
 	}
@@ -150,7 +149,7 @@ namespace dgal {
 	}
 
 	template <typename indType, typename messagingType> void population<indType, messagingType>::run(){
-//		dgal::log("Running generation " + std::to_string(generationNum));
+		dgal::log("Running generation <to_string>generationNum"); //+ std::to_string(generationNum));
 
 		//Run this generation
 		//TODO: put in thread pool individual running
@@ -167,9 +166,18 @@ namespace dgal {
 	}
 
 	template <typename indType, typename messagingType> bool population<indType, messagingType>::checkGoals() const{
-		if (maxGeneration != -1 && generationNum >= maxGeneration) { return true; }
-		else if (maxFitnessLevel != -1 && generationNum >= maxFitnessLevel) { return true; }
-		else if (maxTime != -1 && difftime(time(0), initTime) >= maxTime) { return true; }
+		if (maxGeneration != -1 && generationNum >= maxGeneration){
+			dgal::log("Goal Satisfied: Max Generation met");
+			return true;
+		}
+		else if (maxFitnessLevel != -1 && generationNum >= maxFitnessLevel){
+			dgal::log("Goal Satisfied: Fitness Level achieved");
+			return true;
+		}
+		else if (maxTime != -1 && (clock() - initClock)/CLOCKS_PER_SEC >= maxTime){
+			dgal::log("Goal Satisfied: Time has run out");
+			return true;
+		}
 		return false;
 	}
 }
