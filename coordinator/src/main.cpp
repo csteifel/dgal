@@ -49,8 +49,22 @@ void handleNewConnections(const char *port, std::vector<std::unique_ptr<dgalNode
 		optval = 0;
 		setsockopt(listenSocket, SOL_SOCKET, IPV6_V6ONLY, &optval, sizeof(optval));
 
+
 		while(true){
+			struct sockaddr_storage clientInfo;
+			int clientSocket;
+			socklen_t sockStoreSize = sizeof(struct sockaddr_storage);
+
 			//Accept new connections and add them to the nodes list
+			clientSocket = accept(listenSocket, (struct sockaddr *) &clientInfo, &sockStoreSize);
+			if(clientSocket == -1){
+				std::cerr << "Error accepting " << errno << " " << strerror(errno) << std::endl;
+				continue;
+			}
+
+
+			std::unique_ptr<dgalNode> newClientNode(new dgalNode(clientSocket, "test", 2));
+			nodes.push_back(std::move(newClientNode));
 		}
 	}else{
 		std::cerr << "Error listening " << errno << " " << strerror(errno) << std::endl;
@@ -63,7 +77,9 @@ void heartBeatCheck(const std::vector<std::unique_ptr<dgalNode> >& nodes){
 	while(true){
 		for(size_t i = 0; i < nodes.size(); i++){
 			//Check if alive
+			std::cout << i << std::endl;
 		}
+		sleep(2);
 	}
 }
 
