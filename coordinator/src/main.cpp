@@ -9,19 +9,17 @@
 #include <string.h>
 #include <string>
 #include <unistd.h>
+#include <chrono>
+
+#include "main.h"
 
 
-class dgalNode{
-	public:
-		dgalNode(const int socket, const std::string addr, const unsigned short port) : sockfd(socket), listenPort(port), addressInfo(addr){}
-		dgalNode(const dgalNode&) = delete;
-	private:
-		const int sockfd;
-		unsigned short listenPort;
-		std::string addressInfo;
-};
+void setUpListening(int &listeningSocket){
+	//TODO: Move listening socket set up into this function
+}
 
 
+//TODO: change this function to simply accept connections move out socket set up
 void handleNewConnections(const char *port, std::vector<std::unique_ptr<dgalNode> >& nodes){
 	struct addrinfo *info, hints;
 	memset(&hints, 0, sizeof(struct addrinfo));
@@ -74,12 +72,18 @@ void handleNewConnections(const char *port, std::vector<std::unique_ptr<dgalNode
 }
 
 void heartBeatCheck(const std::vector<std::unique_ptr<dgalNode> >& nodes){
+	int retVal;
 	while(true){
+		//TODO: Fix this so that it doesn't execute too fast like when there is 1 node or 0 nodes (will eat cpu time in useless while loop)
 		for(size_t i = 0; i < nodes.size(); i++){
 			//Check if alive
-			std::cout << i << std::endl;
+			retVal = send(nodes[i]->sockfd, "h", 1, 0);
+			if(retVal != -1){
+				nodes[i]->sentHeartBeat();
+			}else{
+				std::cerr << "Error sending heart beat check " << errno << " " << strerror(errno) << std::endl;
+			}
 		}
-		sleep(2);
 	}
 }
 
@@ -91,7 +95,11 @@ int main(int argc, char *argv[]){
 		port = "25665";
 	}
 
+
+	int listeningSocket;
 	std::vector<std::unique_ptr<dgalNode> > nodes;
+
+	setUpListening(listeningSocket);
 
 	std::thread heartBeat(heartBeatCheck, std::ref(nodes));
 	handleNewConnections(port.c_str(), nodes);
