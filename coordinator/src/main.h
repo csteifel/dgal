@@ -7,7 +7,6 @@
 
 bool setUpListening(int&, const char*);
 int handleNewConnections(const int, std::vector<std::unique_ptr<dgalNode> >&);
-void heartBeatCheck(const std::vector<std::unique_ptr<dgalNode> >&);
 void socketWatch(const int);
 
 

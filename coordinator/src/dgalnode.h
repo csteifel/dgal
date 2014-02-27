@@ -8,10 +8,10 @@ class dgalNode{
 	public:
 		dgalNode(const int socket, const std::string addr, const unsigned short port) : sockfd(socket), listenPort(port), addressInfo(addr){}
 		dgalNode(const dgalNode&) = delete;
-		void sentHeartBeat();
 		void recievedHeartBeat();
-		const int sockfd;
+		int getSockFD() const {return sockfd;}
 	private:
+		const int sockfd;
 		typedef std::chrono::steady_clock clock;
 		unsigned short listenPort;
 		std::string addressInfo;
