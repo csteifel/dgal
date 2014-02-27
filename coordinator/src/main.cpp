@@ -24,24 +24,25 @@ bool setUpListening(int &listenSocket, const char* port){
 	getaddrinfo(NULL, port, &hints, &info);
 
 	listenSocket = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
+	//Ensure we don't tie up the addr and port combination after exit
+	int optval = 1;
+	setsockopt(listenSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+	//Turn off ipv6 only so that we can listen for both v4 and v6 on the same socket
+	optval = 0;
+	setsockopt(listenSocket, SOL_SOCKET, IPV6_V6ONLY, &optval, sizeof(optval));
+
+
 	if(listenSocket == -1){
 		std::cerr << "Error listening: " << errno << " " << strerror(errno) << std::endl;
 		return false;
 	}
 
 	if(bind(listenSocket, info->ai_addr, info->ai_addrlen) != 0){
-		std::cerr << "Error binding to port " << port << std::endl;
+		std::cerr << "Error binding to port " << port << ": " << errno << " " << strerror(errno) << std::endl;
 		return false;
 	}
 
-	if(listen(listenSocket, 10) == 0){
-		//Ensure we don't tie up the addr and port combination
-		int optval = 1;
-		setsockopt(listenSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
-		//Turn off ipv6 only so that we can listen for both v4 and v6 on the same socket
-		optval = 0;
-		setsockopt(listenSocket, SOL_SOCKET, IPV6_V6ONLY, &optval, sizeof(optval));
-	}else{
+	if(listen(listenSocket, 10) != 0){
 		std::cerr << "Error listening " << errno << " " << strerror(errno) << std::endl;
 		return false;
 	}
