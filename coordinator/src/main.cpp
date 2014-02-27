@@ -11,8 +11,38 @@
 #include <unistd.h>
 #include <chrono>
 #include <poll.h>
+#include <stdint.h>
 
 #include "main.h"
+
+
+bool bigEndian;
+
+/**
+ * Custom network to host endian change nothing for 64 bit exists
+ * @param  uint64_t Input of 64 bit number
+ * @return          Correct host endian number
+ */
+uint64_t ntohll(uint64_t input){
+	if(bigEndian){
+		//Network order is big endian
+		return input;
+	}
+
+	uint32_t inLow = 0, inHigh = 0;
+
+	inLow |= input;
+	inHigh |= input >> 32;
+
+	inLow = ntohl(inLow);
+	inHigh = ntohl(inHigh);
+
+	uint64_t result = ((uint64_t) inLow) << 32 | inHigh;
+
+
+	return result;
+}
+
 
 //Will return true on success, false on failure.
 bool setUpListening(int &listenSocket, const char* port){
@@ -151,6 +181,16 @@ int main(int argc, char *argv[]){
 		port = "25665";
 	}
 
+
+	//Perform endian checking
+	{
+		uint16_t endianTest = 1;
+		if(((unsigned char *) &endianTest)[0] == 1){
+			bigEndian = false;
+		}else{
+			bigEndian = true;
+		}
+	}
 
 	int listeningSocket;
 	std::vector<std::unique_ptr<dgalNode> > nodes;
