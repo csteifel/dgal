@@ -141,22 +141,7 @@ int handleNewConnections(const int listenSocket, std::vector<std::unique_ptr<dga
 	return clientSocket;
 }
 
-void heartBeatCheck(const std::vector<std::unique_ptr<dgalNode> >& nodes){
-	int retVal;
-	while(true){
-		//TODO: Fix this so that it doesn't execute too fast like when there is 1 node or 0 nodes (will eat cpu time in useless while loop)
-		for(size_t i = 0; i < nodes.size(); i++){
-			//Check if alive
-			retVal = send(nodes[i]->sockfd, "h", 1, 0);
-			if(retVal != -1){
-				nodes[i]->sentHeartBeat();
-			}else{
-				std::cerr << "Error sending heart beat check " << errno << " " << strerror(errno) << std::endl;
-			}
-		}
-		sleep(3);	
-	}
-}
+
 
 int main(int argc, char *argv[]){
 	std::string port;
@@ -174,9 +159,7 @@ int main(int argc, char *argv[]){
 		return 1;
 	}
 
-	std::thread heartBeat(heartBeatCheck, std::ref(nodes));
 	socketWatch(listeningSocket, nodes);
-	heartBeat.join();
 
 	return 0;
 }
