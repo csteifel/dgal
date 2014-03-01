@@ -17,34 +17,7 @@
 #include <stdint.h>
 
 #include "main.h"
-
-
-bool bigEndian;
-
-/**
- * Custom network to host endian change nothing for 64 bit exists
- * @param  uint64_t Input of 64 bit number
- * @return          Correct host endian number
- */
-uint64_t ntohll(uint64_t input){
-	if(bigEndian){
-		//Network order is big endian
-		return input;
-	}
-
-	uint32_t inLow = 0, inHigh = 0;
-
-	inLow |= input;
-	inHigh |= input >> 32;
-
-	inLow = ntohl(inLow);
-	inHigh = ntohl(inHigh);
-
-	uint64_t result = ((uint64_t) inLow) << 32 | inHigh;
-
-
-	return result;
-}
+#include "dgalutility.h"
 
 
 //Will return true on success, false on failure.
@@ -105,7 +78,7 @@ void processMessages(std::queue<int>& socketsToProcess, std::queue<std::shared_p
 				uint64_t convert;
 				memcpy(&convert, &buf[1], sizeof(uint64_t));
 
-				uint64_t length = ntohll(convert); //Convert to host endianness
+				uint64_t length = dgal::ntohll(convert); //Convert to host endianness
 
 				if(type == 1){
 					//Heart beat recieved
@@ -271,17 +244,6 @@ int main(int argc, char *argv[]){
 		port = argv[1];
 	}else{
 		port = "25665";
-	}
-
-
-	//Perform endian checking
-	{
-		uint16_t endianTest = 1;
-		if(((unsigned char *) &endianTest)[0] == 1){
-			bigEndian = false;
-		}else{
-			bigEndian = true;
-		}
 	}
 
 	int listeningSocket;

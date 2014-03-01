@@ -1,11 +1,12 @@
-VPATH = ../src
+VPATH = ../src:../../shared/src
 objects = main.o dgalnode.o
-CXXFLAGS = -std=c++11 -Wall -Wextra -pthread
+includes = -I../../shared/src
+CXXFLAGS = -std=c++11 -Wall -Wextra -pthread $(includes)
 
 all: $(objects)
 	$(CXX) $(CXXFLAGS) -o coordinator.out $(objects)
 
-main.o: main.cpp main.h
+main.o: main.cpp main.h dgalutility.h
 dgalnode.o: dgalnode.cpp dgalnode.h
 
 clean:
