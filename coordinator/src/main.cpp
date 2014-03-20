@@ -14,11 +14,18 @@
 #include <mutex>
 #include <queue>
 #include <unordered_set>
+#include <unordered_map>
 #include <stdint.h>
 
 #include "main.h"
 #include "dgalutility.h"
 
+
+namespace {
+	std::mutex processingLock;
+	std::mutex sendingLock;
+	std::mutex nodesLock;
+}
 
 //Will return true on success, false on failure.
 bool setUpListening(int &listenSocket, const char* port){
@@ -56,14 +63,14 @@ bool setUpListening(int &listenSocket, const char* port){
 	return true;
 }
 
-void processMessages(std::queue<int>& socketsToProcess, std::queue<std::shared_ptr<dgalNode> >& nodesToProcess, std::unordered_set<int>& queuedSockets, std::mutex& processingLock){
+void processMessages(processingArgContainer pC, std::queue<std::pair<int, std::string> >& sendingQueue){
 	while(true){
-		if(socketsToProcess.size() != 0){
+		if(pC.socketsToProcess.size() != 0){
 			processingLock.lock();
-			int fd = socketsToProcess.front();
-			socketsToProcess.pop();
-			std::shared_ptr<dgalNode> node = nodesToProcess.front();
-			nodesToProcess.pop();
+			int fd = pC.socketsToProcess.front();
+			pC.socketsToProcess.pop();
+			std::shared_ptr<dgalNode> node = pC.nodesToProcess.front();
+			pC.nodesToProcess.pop();
 			processingLock.unlock();
 
 			//Create buffer to read in message type as well as size information
@@ -80,11 +87,11 @@ void processMessages(std::queue<int>& socketsToProcess, std::queue<std::shared_p
 
 				uint64_t length = dgal::ntohll(convert); //Convert to host endianness
 
-				if(type == 1){
+				if(type == dgal::HEARTBEAT){
 					//Heart beat recieved
 					node->recievedHeartBeat();
-					std::cout << "Recieved heart beat" << std::endl;
-				}else if(type == 2){
+					std::cout << "Recieved heart beat from " << fd << std::endl;
+				}else if(type == dgal::BESTMESSAGE){
 					//Recieving serialized individuals
 					std::cout << "Recieving population from " << fd << std::endl;
 
@@ -93,7 +100,11 @@ void processMessages(std::queue<int>& socketsToProcess, std::queue<std::shared_p
 					res = recv(fd, &message[0], length, MSG_DONTWAIT);
 
 					if(res > 0 && (uint64_t) res == length){
+						//Recieve bests message, schedule to send out to the rest
 						std::cout << message << std::endl;
+						sendingLock.lock();
+						sendingQueue.push(std::make_pair(fd, message));
+						sendingLock.unlock();
 					}else{
 						std::cerr << "Error reading message from socket! Supplied size wrong!" << std::endl;
 					}
@@ -112,13 +123,66 @@ void processMessages(std::queue<int>& socketsToProcess, std::queue<std::shared_p
 			}
 
 			processingLock.lock();
-			queuedSockets.erase(fd);
+			//Release this socket fd to be allowed to be added back into the queue
+			pC.queuedSockets.erase(fd);
 			processingLock.unlock();
 		}
 	}
 }
 
-void socketWatch(const int listenSocket, std::vector<std::shared_ptr<dgalNode> >& nodes){
+/**
+ * Thread to process messages that should be sent out to the nodes in the netework
+ * @param nodes        list of nodes
+ * @param sendingQueue queue that is added to from processMessages when it recieves a list of a nodes bests
+ */
+void sendMessages(std::unordered_map<int, std::shared_ptr<dgalNode> >& nodes, std::queue<std::pair<int, std::string> >& sendingQueue){
+	while(true){
+		if(sendingQueue.empty() == false){
+			sendingLock.lock();
+			std::pair<int, std::string> sendOut = std::move(sendingQueue.front());
+			sendingQueue.pop();
+			sendingLock.unlock();
+
+			int dontSendTo = sendOut.first;
+			std::string message = std::move(sendOut.second);
+
+			std::vector<int> sendToFds;
+			std::vector<std::shared_ptr<dgalNode> > sendToNodes;
+
+			//Get a list of all the nodes first so that we aren't holding a lock while possibly on a blocking send call
+			nodesLock.lock();
+			for(auto itr = nodes.begin(), end = nodes.end(); itr != end; itr++){
+				sendToFds.push_back(itr->first);
+				sendToNodes.push_back(itr->second);
+			}
+			nodesLock.unlock();
+
+			//Form the proper character buffer to send out
+			uint64_t messageSize = message.length();
+			messageSize = dgal::htonll(messageSize);
+
+			std::string sendBuffer(sizeof(uint8_t) + sizeof(uint64_t) + message.length(), 0);
+
+			sendBuffer[0] = dgal::BESTMESSAGE;
+			memcpy(&sendBuffer[1], &messageSize, sizeof(uint64_t));
+			sendBuffer += message;
+
+
+			//Send to all nodes except the one that sent this message
+			for(size_t i = 0; i < sendToFds.size(); i++){
+				if(sendToFds[i] == dontSendTo){
+					continue;
+				}
+
+				send(sendToFds[i], sendBuffer.data(), messageSize, 0);
+			}
+
+		}
+	}
+}
+
+
+void socketWatch(const int listenSocket, std::unordered_map<int, std::shared_ptr<dgalNode> >& nodes){
 	std::vector<struct pollfd> socketsToPoll;
 	struct pollfd listeningPollFD;
 
@@ -129,12 +193,16 @@ void socketWatch(const int listenSocket, std::vector<std::shared_ptr<dgalNode> >
 
 	socketsToPoll.push_back(listeningPollFD);
 
-	//Mutex for producer/consumers to use, should change to lock free implementation when time allows
-	std::mutex processingLock;
-
 	std::queue<int> socketsToProcess;
 	std::queue<std::shared_ptr<dgalNode> > nodesToProcess;
 	std::unordered_set<int> queuedSockets;
+
+	
+	processingArgContainer args(socketsToProcess, nodesToProcess, queuedSockets);
+
+
+	std::queue<std::pair<int, std::string> > sendingQueue;
+
 
 	size_t numThreads = std::thread::hardware_concurrency();
 	if(numThreads == 0){
@@ -148,8 +216,10 @@ void socketWatch(const int listenSocket, std::vector<std::shared_ptr<dgalNode> >
 	std::vector<std::thread> processingThreads;
 
 	for(size_t i = 0; i < numThreads; i++){
-		processingThreads.push_back(std::thread(processMessages, std::ref(socketsToProcess), std::ref(nodesToProcess), std::ref(queuedSockets), std::ref(processingLock)));
+		processingThreads.push_back(std::thread(processMessages, args, std::ref(sendingQueue)));
 	}
+
+	std::thread sendingThread(sendMessages, std::ref(nodes), std::ref(sendingQueue));
 
 	while(true){
 		//Wait a maximum of 30 seconds if no response than we either have no nodes or they all disconnected
@@ -173,13 +243,14 @@ void socketWatch(const int listenSocket, std::vector<std::shared_ptr<dgalNode> >
 
 
 				bool foundNode = false;
-				size_t foundAt;
-				for(foundAt = 0; foundAt < nodes.size(); foundAt++){
-					if(socketsToPoll[i].fd == nodes[foundAt]->getSockFD()){
-						foundNode = true;
-						break;
-					}
+				std::shared_ptr<dgalNode> node;
+				nodesLock.lock();
+				if(nodes.count(socketsToPoll[i].fd) != 0){
+					foundNode = true;
+					node = nodes[socketsToPoll[i].fd];
 				}
+				nodesLock.unlock();
+
 
 				if(foundNode == false){
 					std::cerr << "Cannot find node for socket " << socketsToPoll[i].fd << std::endl;
@@ -193,7 +264,9 @@ void socketWatch(const int listenSocket, std::vector<std::shared_ptr<dgalNode> >
 					std::cerr << "POLLERR " << errno << " " << strerror(errno) << std::endl;
 				}else if(socketsToPoll[i].revents & POLLHUP || socketsToPoll[i].revents & POLLRDHUP){
 					close(socketsToPoll[i].fd);
-					nodes.erase(nodes.begin() + foundAt);
+					nodesLock.lock();
+					nodes.erase(socketsToPoll[i].fd);
+					nodesLock.unlock();
 					socketsToPoll.erase(socketsToPoll.begin() + i);
 				}else if(socketsToPoll[i].revents & POLLIN){
 					if(queuedSockets.count(socketsToPoll[i].fd) == 1){
@@ -202,11 +275,10 @@ void socketWatch(const int listenSocket, std::vector<std::shared_ptr<dgalNode> >
 					}
 					processingLock.lock();
 					socketsToProcess.push(socketsToPoll[i].fd);
-					nodesToProcess.push(nodes[foundAt]);
+					nodesToProcess.push(node);
 					queuedSockets.insert(socketsToPoll[i].fd);
 					processingLock.unlock();
 				}
-
 
 			}
 		}
@@ -215,10 +287,11 @@ void socketWatch(const int listenSocket, std::vector<std::shared_ptr<dgalNode> >
 	for(size_t i = 0; i < processingThreads.size(); i++){
 		processingThreads[i].join();
 	}
+	sendingThread.join();
 }
 
 
-int handleNewConnections(const int listenSocket, std::vector<std::shared_ptr<dgalNode> >& nodes){
+int handleNewConnections(const int listenSocket, std::unordered_map<int, std::shared_ptr<dgalNode> >& nodes){
 	struct sockaddr_storage clientInfo;
 	int clientSocket;
 	socklen_t sockStoreSize = sizeof(struct sockaddr_storage);
@@ -231,7 +304,9 @@ int handleNewConnections(const int listenSocket, std::vector<std::shared_ptr<dga
 	}
 
 	std::shared_ptr<dgalNode> newClientNode(new dgalNode(clientSocket, "test", 2));
-	nodes.push_back(newClientNode);
+	nodesLock.lock();
+	nodes.insert(std::make_pair(clientSocket, newClientNode));
+	nodesLock.unlock();
 
 	return clientSocket;
 }
@@ -247,13 +322,14 @@ int main(int argc, char *argv[]){
 	}
 
 	int listeningSocket;
-	std::vector<std::shared_ptr<dgalNode> > nodes;
+	std::unordered_map<int, std::shared_ptr<dgalNode> > nodes;
 
 	if(setUpListening(listeningSocket, port.c_str()) == false){
 		return 1;
 	}
 
 	socketWatch(listeningSocket, nodes);
+
 
 	return 0;
 }

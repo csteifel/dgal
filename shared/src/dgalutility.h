@@ -7,6 +7,12 @@
 
 namespace dgal {
 
+
+	enum {
+		HEARTBEAT = 1, BESTMESSAGE
+	};
+
+
 #ifdef DEBUG
 	void log(std::string message){
 		std::cout << message << std::endl;
