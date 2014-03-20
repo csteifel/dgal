@@ -101,7 +101,6 @@ void processMessages(processingArgContainer pC, std::queue<std::pair<int, std::s
 
 					if(res > 0 && (uint64_t) res == length){
 						//Recieve bests message, schedule to send out to the rest
-						std::cout << message << std::endl;
 						sendingLock.lock();
 						sendingQueue.push(std::make_pair(fd, message));
 						sendingLock.unlock();
@@ -114,12 +113,14 @@ void processMessages(processingArgContainer pC, std::queue<std::pair<int, std::s
 					std::cerr << "Recieved non conforming message shutting down socket" << std::endl;
 					shutdown(fd, SHUT_RDWR);
 				}
-			}else if(res == -1){
-				//Error reading
-				std::cerr << "Error reading socket " << fd << ": " << errno << " " << strerror(errno) << std::endl;
-			}else{
+			}else if(res == 0){
 				//Disconnect
 				shutdown(fd, SHUT_RDWR);
+			}else if(res == -1){
+				//Error reading
+				if(errno != EAGAIN){
+					std::cerr << "Error reading socket " << fd << ": " << errno << " " << strerror(errno) << std::endl;
+				}
 			}
 
 			processingLock.lock();
@@ -157,16 +158,16 @@ void sendMessages(std::unordered_map<int, std::shared_ptr<dgalNode> >& nodes, st
 			}
 			nodesLock.unlock();
 
+
 			//Form the proper character buffer to send out
 			uint64_t messageSize = message.length();
-			messageSize = dgal::htonll(messageSize);
+			uint64_t networkMessageSize = dgal::htonll(messageSize);
 
-			std::string sendBuffer(sizeof(uint8_t) + sizeof(uint64_t) + message.length(), 0);
+			std::string sendBuffer(sizeof(uint8_t) + sizeof(uint64_t), 0);
 
 			sendBuffer[0] = dgal::BESTMESSAGE;
-			memcpy(&sendBuffer[1], &messageSize, sizeof(uint64_t));
+			memcpy(&sendBuffer[1], &networkMessageSize, sizeof(uint64_t));
 			sendBuffer += message;
-
 
 			//Send to all nodes except the one that sent this message
 			for(size_t i = 0; i < sendToFds.size(); i++){
@@ -174,7 +175,7 @@ void sendMessages(std::unordered_map<int, std::shared_ptr<dgalNode> >& nodes, st
 					continue;
 				}
 
-				send(sendToFds[i], sendBuffer.data(), messageSize, 0);
+				send(sendToFds[i], sendBuffer.data(), sendBuffer.size(), 0);
 			}
 
 		}
