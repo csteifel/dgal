@@ -226,6 +226,8 @@ void socketWatch(const int listenSocket, std::unordered_map<int, std::shared_ptr
 		int res = poll(socketsToPoll.data(), socketsToPoll.size(), 3000);
 
 		if(res > 0){
+			//FIXME: Problem when all nodes close socket connection at end, goes through POLLERR 22
+			//Only happens when all nodes finished simulation, not if connection is closed before end of sim.
 			for(unsigned int i = 0; i < socketsToPoll.size(); i++){
 				if(socketsToPoll[i].revents == 0){
 					continue;
