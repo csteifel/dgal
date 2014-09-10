@@ -10,15 +10,22 @@
 #include <memory>
 #include <random>
 #include <fstream>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <string.h>
+#include <unistd.h>
 #include "individual.h"
 #include "dgalutility.h"
 
 namespace dgal {
-	template <typename indType, typename messagingType> class population {
+	template <typename indType> class population {
+//		static_assert(std::is_function<indType::createFromSerialized>::value, "Types derived from dgal::individual must have a static createFromSerialized(std::string) method");
+
 		typedef std::shared_ptr<indType> custIndPtr;
+
 		public:
 			population();
-			void addOutsideBests(const std::vector<std::pair<std::string, double> >& outsiders);
 		protected:
 			void nextGeneration();
 			void generateNewIndividuals();
@@ -26,10 +33,15 @@ namespace dgal {
 			void run();
 			void initiateMessaging();
 			bool checkGoals() const; //potentially virtual later 'to allow for custom population controller'
+			void sendBests();
+			void getBests();
+			void sendHeartBeat(int);
+
+			void addOutsideBests(const std::vector<std::pair<std::string, double> >& outsiders);
 
 			std::vector<custIndPtr> individuals;
 			//Individual buffer for holding bests from other nodes until used.
-			std::vector<custIndPtr > individualBuffer;
+			std::vector<custIndPtr> individualBuffer;
 			std::atomic<bool> bufferDirty;
 
 			clock_t initClock;
@@ -41,7 +53,6 @@ namespace dgal {
 
 			bool stop = false;
 	};
-
 
 	template <typename indType, typename messagingType> population<indType, messagingType>::population(){
 		initClock = clock();
@@ -81,34 +92,101 @@ namespace dgal {
 		}
 		cfgFile.close();
 
+	template <typename indType> population<indType>::population(){
 		bufferDirty.store(false);
 		if(generationNum == 0){
 			generateNewIndividuals();
 		}
 
 		std::srand(std::time(0));
-
 //		std::thread t(&population<indType, messagingType>::initiateMessaging, this);
+		std::thread t(&population<indType>::getBests, this);
 		run();
 		stop = true;
 //		t.join();
 	}
 
-	template <typename indType, typename messagingType> void population<indType, messagingType>::initiateMessaging(){
-		//TODO: implement
-		messagingType messageController;
-		std::vector<std::pair<std::string, double> > bestContainer;
-		while(true){
-			messageController.getBests(bestContainer);
-			
-			bestContainer.clear();
-			if(stop){
-				return;
+	template <typename indType> void population<indType>::getBests(){
+		struct addrinfo hints, *res;
+
+		memset(&hints, 0, sizeof(struct addrinfo));
+
+		hints.ai_family = AF_UNSPEC;
+		hints.ai_socktype = SOCK_STREAM;
+
+		//FIXME: remove hard coded server
+		int rc = getaddrinfo("localhost", "25665", &hints, &res);
+
+		if(rc == -1){
+			std::cerr << "Error looking up server (" << strerror(errno) << "), proceeding without connecting to server...\n";
+			return;
+		}
+
+		int fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+		if(fd == -1){
+			std::cerr << "Error creating socket (" << strerror(errno) << "), proceeding without connecting to server...\n";
+			return;
+		}
+
+		rc = connect(fd, (struct sockaddr *) res->ai_addr, res->ai_addrlen);
+		if(rc == -1){
+			std::cerr << "Could not connect socket (" << strerror(errno) << "), proceding without connecting to server...\n";
+			return;
+		}
+
+		std::thread heartBeatThread(&population<indType>::sendHeartBeat, this, fd);
+		//create buffer to read in type and size information
+		char buf[sizeof(uint8_t) + sizeof(uint64_t)];
+
+		//Set a timeout for recving so that if stop is set it can stop
+		struct timeval timeout;
+		timeout.tv_sec = 3;
+		timeout.tv_usec = 0;
+		setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, (socklen_t) sizeof(struct timeval));
+
+		while(!stop){
+			memset(buf, 0, sizeof(uint8_t) + sizeof(uint64_t));
+			int amountRecv = recv(fd, buf, sizeof(uint8_t) + sizeof(uint64_t), 0);
+
+			if(amountRecv > 0){
+				if(buf[0] == dgal::BESTMESSAGE){
+					uint64_t messageLength = 0;
+					memcpy(&messageLength, &buf[1], sizeof(uint64_t));
+					messageLength = dgal::ntohll(messageLength);
+
+					std::string bestsMessage(messageLength, 0);
+					amountRecv = recv(fd, &bestsMessage[0], messageLength, 0);
+					
+				}
+			}else if(amountRecv == -1){
+				if(!(errno == EAGAIN || errno == EWOULDBLOCK)){
+					std::cerr << "Error reading from socket: " << errno << " " << strerror(errno) << "\n";
+				}
+			}else{
+				std::cerr << "Error server connection lost!" << std::endl;
+				stop = true;
+				break;
 			}
+		}
+		heartBeatThread.join();
+		shutdown(fd, SHUT_RDWR);
+		close(fd);
+	}
+
+
+	template <typename indType> void population<indType>::sendHeartBeat(int fd){
+		while(!stop){
+			char buf[sizeof(uint8_t) + sizeof(uint64_t)];
+			memset(buf, 0, sizeof(uint8_t) + sizeof(uint64_t));
+			buf[0] = dgal::HEARTBEAT;
+			send(fd, buf, sizeof(uint8_t) + sizeof(uint64_t),0);
+			sleep(15);
 		}
 	}
 
-	template <typename indType, typename messagingType> void population<indType, messagingType>::addOutsideBests(const std::vector<std::pair<std::string, double> >& outsiders){
+	//template <typename indType, typename messagingType> void population<indType, messagingType>::addOutsideBests(const std::vector<std::pair<std::string, double> >& outsiders){
+
+	template <typename indType> void population<indType>::addOutsideBests(const std::vector<std::pair<std::string, double> >& outsiders){
 		for(size_t i = 0; i < outsiders.size(); i++){
 			custIndPtr recieved(new indType(outsiders[i].first, outsiders[i].second));
 			individualBuffer.push_back(std::move(recieved));
@@ -116,7 +194,7 @@ namespace dgal {
 		bufferDirty.store(true);
 	}
 
-	template <typename indType, typename messagingType> void population<indType, messagingType>::nextGeneration(){
+	template <typename indType> void population<indType>::nextGeneration(){
 		//Pick out bests if not just starting up
 		chooseParents();
 
@@ -137,19 +215,19 @@ namespace dgal {
 	
 	}
 
-	template <typename indType, typename messagingType> void population<indType, messagingType>::generateNewIndividuals(){
+	template <typename indType> void population<indType>::generateNewIndividuals(){
 		while(individuals.size() < numIndividuals){
 			dgal::log("Adding individual");
 			individuals.push_back(custIndPtr(new indType));
 		}
 	}
 
-	template <typename indType, typename messagingType> void population<indType, messagingType>::chooseParents(){
+	template <typename indType> void population<indType>::chooseParents(){
 		//TODO: implement
 	}
 
-	template <typename indType, typename messagingType> void population<indType, messagingType>::run(){
-		dgal::log("Running generation <to_string>generationNum"); //+ std::to_string(generationNum));
+	template <typename indType> void population<indType>::run(){
+		dgal::log("Running generation " + std::to_string(generationNum));
 
 		//Run this generation
 		//TODO: put in thread pool individual running
@@ -162,6 +240,8 @@ namespace dgal {
 		if(checkGoals() == false){
 			nextGeneration();
 			run();
+		}else{
+			std::cout << "done" << std::endl;
 		}
 	}
 

@@ -14,7 +14,7 @@ namespace dgal {
 			individual(const size_t numWeights);
 			individual(const std::shared_ptr<dgal::individual> parentA, const std::shared_ptr<dgal::individual> parentB);
 
-//			virtual void createFromSerialized(const std::string serialized) = 0;
+//			static std::shared_ptr<dgal::individual> createFromSerialized(const std::string serialized){return std::shared_ptr<dgal::individual>(NULL);};
 //			virtual std::string serialize() const = 0;
 			virtual void run() = 0;
 
