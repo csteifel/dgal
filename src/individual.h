@@ -7,6 +7,7 @@
 #include <string>
 #include <iostream>
 
+//this is chris' test commit
 namespace dgal {
 	class individual {
 		public:
