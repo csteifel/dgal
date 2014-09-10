@@ -170,9 +170,22 @@ namespace dgal {
 			dgal::log("Goal Satisfied: Max Generation met");
 			return true;
 		}
-		else if (maxFitnessLevel != -1 && generationNum >= maxFitnessLevel){
-			dgal::log("Goal Satisfied: Fitness Level achieved");
-			return true;
+		else if (maxFitnessLevel != -1)
+		{
+			if(individuals[0]->getFitness() >= maxFitnessLevel)
+			{
+				dgal::log("Goal Satisfied: Fitness Level achieved (local node)");
+				return true;
+			}
+			//Assuming Individual Buffer is not sorted. Can be changed later if sorted
+			for (std::vector<custIndPtr>::iterator i = individualBuffer.begin(); i != individualBuffer.end(); ++i)
+			{
+				if(*i->getFitness() >= maxFitnessLevel)
+				{
+					dgal::log("Goal Satisfied: Fitness Level achieved (outside node)");
+					return true;
+				}
+			}
 		}
 		else if (maxTime != -1 && (clock() - initClock)/CLOCKS_PER_SEC >= maxTime){
 			dgal::log("Goal Satisfied: Time has run out");
