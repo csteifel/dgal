@@ -6,38 +6,60 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <limits>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_io.hpp>
+#include <boost/uuid/random_generator.hpp>
 
 namespace dgal {
 	class individual {
 		public:
 			individual() = delete;
 			individual(const size_t numWeights);
+
+			//For use when creating from serialization 
+			individual(const std::string& uuid);
+
 			individual(const std::shared_ptr<dgal::individual> parentA, const std::shared_ptr<dgal::individual> parentB);
 
 //			static std::shared_ptr<dgal::individual> createFromSerialized(const std::string serialized){return std::shared_ptr<dgal::individual>(NULL);};
-//			virtual std::string serialize() const = 0;
+			virtual const std::string serialize() const = 0;
 			virtual void run() = 0;
 
+			const std::string generateId();
+			const std::string wrapSerialization(const std::string&&) const;
+
 			double getFitness() const {return fitness;}
+
+			const std::string uniqueID; //Ok to be public since it is const
 		protected:
 //			virtual void mutate();
 
-			double fitness;
 			std::vector<double> weights;
+			double fitness;
 
 			bool fitnessPreCalced = false;
 	};
 
 
-	individual::individual(const size_t numWeights) : weights(numWeights) {
+	inline individual::individual(const size_t numWeights) : weights(numWeights), uniqueID(generateId()) {
 		//Generate random weights for this individual
+		std::random_device rd;
+		std::mt19937_64 randEng(rd());
+		//Why do we use numeric limits of int here you ask?
+		//Its because if you do numeric limits of double you get infinity every time you ask for a random
+		//because max-min for doubles is greater than numeric limits Real numbers
+		std::uniform_real_distribution<double> rg(std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
+
 		for(size_t i = 0; i < numWeights; i++){
 			//TODO: fix random generation to be better and more random
-			weights[i] = (double) std::rand() / RAND_MAX * ((std::rand() % 3) - 1) * std::numeric_limits<double>::max();
-		}
+			weights[i] = rg(randEng);
+		}	
 	}
 
-	individual::individual(const std::shared_ptr<dgal::individual> parentA, const std::shared_ptr<dgal::individual> parentB){
+	inline individual::individual(const std::string& uuid) : uniqueID(uuid){}
+
+	inline individual::individual(const std::shared_ptr<dgal::individual> parentA, const std::shared_ptr<dgal::individual> parentB) : uniqueID(generateId()){
 		//TODO: switch away from C style random
 		weights.resize(parentA->weights.size());
 		size_t cutOff = std::rand() % weights.size();
@@ -46,6 +68,9 @@ namespace dgal {
 		}
 	}
 
+	inline const std::string individual::generateId(){
+		return to_string(boost::uuids::random_generator()());
+	}
 }
 
 #endif

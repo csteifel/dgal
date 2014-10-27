@@ -10,5 +10,6 @@ debug:
 	@echo "Making tests"
 	$(MAKE) -C ./tests
 
+.PHONY: clean
 clean:
 	$(MAKE) -C ./tests clean
