@@ -224,6 +224,9 @@ namespace dgal {
 
 	template <typename indType> void population<indType>::chooseParents(){
 		//TODO: implement
+		for(int i=0; i < individuals.size(); ++i){
+			
+		}
 	}
 
 	template <typename indType> void population<indType>::run(){
