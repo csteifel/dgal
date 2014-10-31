@@ -1,5 +1,5 @@
 VPATH=../build:../src:../shared/src
-objects = farm.o
+objects = main.o
 includes = -I../src/ -I../shared/src
 CXXFLAGS = -std=c++11 -Wall -Wno-reorder -Wextra -DDEBUG -pthread $(includes) $(libs)
 

@@ -19,7 +19,7 @@ class test : public dgal::individual {
 
 		virtual void run();
 
-		static std::shared_ptr<dgal::individual> createFromSerialized(std::string&&, const double);
+		static std::shared_ptr<dgal::individual> createFromSerialized(const std::string, const double, std::string&&);
 		virtual const std::string serialize() const;
 
 };
@@ -33,7 +33,8 @@ void test::run(){
 	usleep(2500);
 }
 
-std::shared_ptr<dgal::individual> test::createFromSerialized(std::string&& serialized, const double precalcFitness){
+std::shared_ptr<dgal::individual> test::createFromSerialized(const std::string uuid, const double precalcedFitness, std::string&& serialization){
+	/*
 	test * newFromSerial = new test();
 	size_t i = 0;
 	size_t offset = 0;
@@ -47,6 +48,10 @@ std::shared_ptr<dgal::individual> test::createFromSerialized(std::string&& seria
 	newFromSerial->run();
 	
 	return std::shared_ptr<dgal::individual>(newFromSerial);
+	*/
+
+	//Fix this to actually create from serialized now
+	return std::shared_ptr<dgal::individual>(new test());
 }
 
 
