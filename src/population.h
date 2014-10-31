@@ -53,6 +53,21 @@ namespace dgal {
 
 			bool stop = false;
 	};
+	
+	template <typename indType> void population<indType>::chooseParents(){
+		//TODO: implement
+		/*
+			P[i] = getFitness() / 
+		*/
+
+		int sum;
+		for(int i=0; i < individuals.size(); ++i){
+			sum=0;
+			for(int j=0; j<individuals.size(); ++j){
+				sum+=individuals[j]->getFitness();
+			}
+		}
+	}
 
 	template <typename indType, typename messagingType> population<indType, messagingType>::population(){
 		initClock = clock();
@@ -91,8 +106,6 @@ namespace dgal {
 			}
 		}
 		cfgFile.close();
-
-	template <typename indType> population<indType>::population(){
 		bufferDirty.store(false);
 		if(generationNum == 0){
 			generateNewIndividuals();
@@ -222,20 +235,15 @@ namespace dgal {
 		}
 	}
 
-	template <typename indType> void population<indType>::chooseParents(){
-		//TODO: implement
-		for(int i=0; i < individuals.size(); ++i){
-			
-		}
-	}
-
+	//choose parents
+	
 	template <typename indType> void population<indType>::run(){
 		dgal::log("Running generation " + std::to_string(generationNum));
 
 		//Run this generation
 		//TODO: put in thread pool individual running
 		for(size_t i = 0; i < individuals.size(); i++){
-			individuals[i]->run();
+			individuals[i]->fitness();
 		}
 
 		++generationNum;

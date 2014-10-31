@@ -7,7 +7,6 @@
 #include <string>
 #include <iostream>
 
-//this is chris' test commit
 namespace dgal {
 	class individual {
 		public:
@@ -17,14 +16,16 @@ namespace dgal {
 
 //			static std::shared_ptr<dgal::individual> createFromSerialized(const std::string serialized){return std::shared_ptr<dgal::individual>(NULL);};
 //			virtual std::string serialize() const = 0;
-			virtual void run() = 0;
+			virtual void fitness() = 0;
 
 			double getFitness() const {return fitness;}
+			double getProbability() const {return probability;}
 		protected:
 //			virtual void mutate();
 
 			double fitness;
 			std::vector<double> weights;
+			double probability;
 
 			bool fitnessPreCalced = false;
 	};
