@@ -90,7 +90,7 @@ namespace dgal {
 
 	template <typename indType> population<indType>::population(){
 		initClock = clock();
-		std::ifstream cfgFile("info.cfg");
+		std::ifstream cfgFile("../info.cfg");
 		if (!cfgFile){ 
 			dgal::log("ERROR: cannot find config file 'info.cfg'"); 
 			return;

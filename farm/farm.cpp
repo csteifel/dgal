@@ -75,13 +75,16 @@ private:
 class Farm : public dgal::individual {
 	public:
 		// Number of animals in farm defaults to 10
-		Farm() : dgal::individual(10) {}
+		Farm() : Farm(10) {}
 		Farm(const size_t numAnimals);
 		bool unfilled(const size_t numAnimals);
 		void print() const { for(size_t i = 0; i < weights.size(); ++i) { std::cout << weights[i] << " "; } std::cout << std::endl; }
 
 		virtual void run();
 		virtual const std::string serialize() const { return ""; }
+
+		static std::shared_ptr<dgal::individual> createFromSerialized(const std::string uuid, const double precalcedFitness,
+					std::string&& serialization) { return std::shared_ptr<dgal::individual>(new Farm()); }
 
 	private:
 		double funds;
@@ -117,7 +120,7 @@ Farm::Farm(const size_t numAnimals) : dgal::individual(numAnimals) {
 	maxAnimals.push_back(std::rand() % 285);
 	maxAnimals.push_back(std::rand() % 100);
 
-	for (unsigned int i = 0; i < numAnimals; ++i) {
+	for (size_t i = 0; i < numAnimals; ++i) {
 		weights[i] = 0;							// Using weights slightly differently
 	}
 
@@ -137,7 +140,7 @@ Farm::Farm(const size_t numAnimals) : dgal::individual(numAnimals) {
 }
 
 bool Farm::unfilled(const size_t numAnimals){
-	for(unsigned int i = 0; i < numAnimals; ++i) {
+	for(size_t i = 0; i < numAnimals; ++i) {
 		if(maxAnimals[i] > 0 ) {
 			if(funds > animals[i].getCost() && acreage > animals[i].getSpace()) {
 					return true;
@@ -148,7 +151,7 @@ bool Farm::unfilled(const size_t numAnimals){
 }
 
 void Farm::run() {
-	for (unsigned int i = 0; i < maxAnimals.size(); ++i) {
+	for (size_t i = 0; i < maxAnimals.size(); ++i) {
 		fitness += weights[i] * animals[i].getOutput();
 	}	
 }
@@ -171,8 +174,8 @@ int main(){
 	E->run();
 	F->run();
 
-	std::cout << "Testing 6 Farm Individuals" << std::endl;
-	std::cout << "Pig Cow Chicken Horse Sheep Donkey Goat Lamb Rooster Goose" << std::endl;
+	std::cout << "Testing 6 Farm Individuals\n";
+	std::cout << "Pig Cow Chicken Horse Sheep Donkey Goat Lamb Rooster Goose\n";
 	std::cout << "A - Number of Each Animal: ";
 	A->print();
 	std::cout << "Fitness: " << A->getFitness() << std::endl;
@@ -193,6 +196,8 @@ int main(){
 	std::cout << "Fitness: " << F->getFitness() << std::endl;
 	std::cout << "End Testing of Individuals\n";
 
+	std::cout << "\nBegin Population Testing\n";
+	dgal::population<Farm> pop;
 
 	return 0;
 }
