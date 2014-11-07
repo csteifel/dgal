@@ -194,10 +194,12 @@ int main(){
 	std::cout << "F - Number of Each Animal: ";
 	F->print();
 	std::cout << "Fitness: " << F->getFitness() << std::endl;
-	std::cout << "End Testing of Individuals\n";
+	std::cout << "End Testing of Individuals\n\n";
 
-	std::cout << "\nBegin Population Testing\n";
+	dgal::log("Begin Farm Population Testing");
 	dgal::population<Farm> pop;
+
+	// Print Highest fitness individual
 
 	return 0;
 }
