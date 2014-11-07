@@ -30,6 +30,7 @@ namespace dgal {
 			const std::string generateId();
 			const std::string wrapSerialization(const std::string&&) const;
 
+			void print() const; 
 			double getFitness() const {return fitness;}
 			double getProbability() const {return probability;}
 
@@ -43,6 +44,23 @@ namespace dgal {
 
 			bool fitnessPreCalced = false;
 	};
+
+void individual::print() const{
+	for(size_t i = 0; i < weights.size(); ++i) { 
+		if(i==0) 	 	std::cout<<"Pigs: ";
+		else if(i==1)	 	std::cout<<"Cows: ";
+		else if(i==2) 	std::cout<<"Chicken ";
+		else if(i==3)		std::cout<<"Horse ";
+		else if(i==4)		std::cout<<"Sheep ";
+		else if(i==5)		std::cout<<"Donkey ";
+		else if(i==6)		std::cout<<"Goat ";
+		else if(i==7)		std::cout<<"Lamb ";
+		else if(i==8)		std::cout<<"Rooster ";
+		else if(i==9)		std::cout<<"Goose ";
+		std::cout << weights[i] << " "<<std::endl;
+	} 
+}
+	
 
 
 	inline individual::individual(const size_t numWeights) : weights(numWeights), uniqueID(generateId()) {

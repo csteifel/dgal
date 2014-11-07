@@ -88,7 +88,7 @@ namespace dgal {
 
 	template <typename indType> population<indType>::population() {
 		initClock = clock();
-		std::ifstream cfgFile("info.cfg");
+		std::ifstream cfgFile("../info.cfg");
 		if (!cfgFile) { 
 			dgal::log("ERROR: cannot find config file 'info.cfg'"); 
 			return;
@@ -115,7 +115,7 @@ namespace dgal {
 				}
 				else if (condition == "time"){
 					maxTime = parameter;
-					dgal::log("Goal Condition set: Max amount of time can pass in seconds = ") + std::to_string(parameter));
+					dgal::log("Goal Condition set: Max amount of time can pass in seconds = " + std::to_string(parameter));
 				}
 			}
 		}
@@ -123,9 +123,9 @@ namespace dgal {
 		dgal::log("Done Reading Config File");
 
 		bufferDirty.store(false);
-		if(generationNum == 1){
+		// if(generationNum == 1){
 			generateNewIndividuals();
-		}
+		// }
 
 		std::srand(std::time(0));
 		std::thread t(&population<indType>::getBests, this);
@@ -207,7 +207,7 @@ namespace dgal {
 
 		rc = connect(fd, (struct sockaddr *) res->ai_addr, res->ai_addrlen);
 		if(rc == -1){
-			std::cerr << "Could not connect socket (" << strerror(errno) << "), proceding without connecting to server...\n";
+//			std::cerr << "Could not connect socket (" << strerror(errno) << "), proceding without connecting to server...\n";
 			shutdown(fd, SHUT_RDWR);
 			close(fd);
 			fd = -1;
@@ -392,6 +392,10 @@ namespace dgal {
 			nextGeneration();
 			runGeneration();
 		}
+		else{
+			std::cout<<"Best Fit Farm Individuals"<<std::endl;
+			individuals[0]->print();
+		}
 	}
 
 	template <typename indType> bool population<indType>::checkGoals() const{
@@ -403,7 +407,9 @@ namespace dgal {
 		{
 			if(individuals[0]->getFitness() >= maxFitnessLevel)
 			{
-				dgal::log("Goal Satisfied: Fitness Level achieved (local node)");
+				dgal::log("Goal Satisfied: Fitness Level achieved");
+				//REENTER THIS LINE IN!!!!
+				// dgal::log("Goal Satisfied: Fitness Level achieved (local node)");
 				return true;
 			}
 			//Assuming Individual Buffer is not sorted. Can be changed later if sorted
