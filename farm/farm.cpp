@@ -75,10 +75,13 @@ private:
 class Farm : public dgal::individual {
 	public:
 		// Number of animals in farm defaults to 10
+		Farm() : dgal::individual(10) {}
 		Farm(const size_t numAnimals);
 		bool unfilled(const size_t numAnimals);
+		void print() const { for(size_t i = 0; i < weights.size(); ++i) { std::cout << weights[i] << " "; } std::cout << std::endl; }
 
-		void run();
+		virtual void run();
+		virtual const std::string serialize() const { return ""; }
 
 	private:
 		double funds;
@@ -87,7 +90,7 @@ class Farm : public dgal::individual {
 		std::vector<int> maxAnimals;
 };
 
-farm::farm(const size_t numAnimals) : weights(numAnimals), animals(numAnimals), maxAnimals(numAnimals) {
+Farm::Farm(const size_t numAnimals) : dgal::individual(numAnimals) {
 	funds = 10000;
 	acreage = 20;
 	fitness = 0;
@@ -114,25 +117,29 @@ farm::farm(const size_t numAnimals) : weights(numAnimals), animals(numAnimals), 
 	maxAnimals.push_back(std::rand() % 285);
 	maxAnimals.push_back(std::rand() % 100);
 
+	for (unsigned int i = 0; i < numAnimals; ++i) {
+		weights[i] = 0;							// Using weights slightly differently
+	}
+
 	while (unfilled(numAnimals)) {
 		int randAnimal = rand() % 10;
 		if(maxAnimals[randAnimal] > 0) {
-			if(funds < animals[randAnimal].getCost() || space < animals[randAnimal].getSpace()) {
+			if(funds < animals[randAnimal].getCost() || acreage < animals[randAnimal].getSpace()) {
 				continue;
 			}
 
 			funds -= animals[randAnimal].getCost();
-			space -= animals[randAnimal].getSpace();
+			acreage -= animals[randAnimal].getSpace();
 			--maxAnimals[randAnimal];
 			++weights[randAnimal];
 		}
 	}
 }
 
-bool farm::unfilled(const size_t numAnimals){
-	for(int i = 0; i < numAnimals; ++i) {
+bool Farm::unfilled(const size_t numAnimals){
+	for(unsigned int i = 0; i < numAnimals; ++i) {
 		if(maxAnimals[i] > 0 ) {
-			if(funds > animals[i].getCost() && space > animals[i].getSpace()) {
+			if(funds > animals[i].getCost() && acreage > animals[i].getSpace()) {
 					return true;
 			}
 		}
@@ -140,30 +147,52 @@ bool farm::unfilled(const size_t numAnimals){
 	return false;
 }
 
-void farm::fitness(){
-	for (int i = 0; i < maxAnimals.size(); ++i) {
-		weights[i] *= animals[i].getOutput();
-		fitness += weights[i];
+void Farm::run() {
+	for (unsigned int i = 0; i < maxAnimals.size(); ++i) {
+		fitness += weights[i] * animals[i].getOutput();
 	}	
 }
 
 int main(){
 
-	//farming custom individuals
+	// Test Farm individuals
 	std::srand(std::time(0));
-	std::shared_ptr<farm> A(new farm(10));
-	std::shared_ptr<farm> B(new farm(10));
-	std::shared_ptr<farm> C(new farm(10));
-	std::shared_ptr<farm> D(new farm(10));
+	std::shared_ptr<Farm> A(new Farm(10));
+	std::shared_ptr<Farm> B(new Farm(10));
+	std::shared_ptr<Farm> C(new Farm(10));
+	std::shared_ptr<Farm> D(new Farm(10));
+	std::shared_ptr<Farm> E(new Farm(10));
+	std::shared_ptr<Farm> F(new Farm(10));
 
-	std::cout << "****************************\nA ---\n";
+	A->run();
+	B->run();
+	C->run();
+	D->run();
+	E->run();
+	F->run();
+
+	std::cout << "Testing 6 Farm Individuals" << std::endl;
+	std::cout << "Pig Cow Chicken Horse Sheep Donkey Goat Lamb Rooster Goose" << std::endl;
+	std::cout << "A - Number of Each Animal: ";
 	A->print();
-	std::cout << "****************************\nB ---\n";
+	std::cout << "Fitness: " << A->getFitness() << std::endl;
+	std::cout << "B - Number of Each Animal: ";
 	B->print();
-	std::cout << "****************************\nC ---\n";
+	std::cout << "Fitness: " << B->getFitness() << std::endl;
+	std::cout << "C - Number of Each Animal: ";
 	C->print();
-	std::cout << "****************************\nD ---\n";
+	std::cout << "Fitness: " << C->getFitness() << std::endl;
+	std::cout << "D - Number of Each Animal: ";
 	D->print();
+	std::cout << "Fitness: " << D->getFitness() << std::endl;
+	std::cout << "E - Number of Each Animal: ";
+	E->print();
+	std::cout << "Fitness: " << E->getFitness() << std::endl;
+	std::cout << "F - Number of Each Animal: ";
+	F->print();
+	std::cout << "Fitness: " << F->getFitness() << std::endl;
+	std::cout << "End Testing of Individuals\n";
+
 
 	return 0;
 }
