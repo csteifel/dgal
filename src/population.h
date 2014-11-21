@@ -32,6 +32,8 @@ namespace dgal {
 	template <typename indType> class population {
 //		static_assert(std::is_function<indType::createFromSerialized>::value, "Types derived from dgal::individual must have a static createFromSerialized(std::string) method");
 
+		
+
 		public:
 			population();
 		protected:
@@ -86,10 +88,10 @@ namespace dgal {
 		}
 	}
 
-	template <typename indType> population<indType>::population() {
+	template <typename indType> population<indType>::population(){
 		initClock = clock();
-		std::ifstream cfgFile("../info.cfg");
-		if (!cfgFile) { 
+		std::ifstream cfgFile("info.cfg");
+		if (!cfgFile){ 
 			dgal::log("ERROR: cannot find config file 'info.cfg'"); 
 			return;
 		}
@@ -97,8 +99,8 @@ namespace dgal {
 		std::string token, condition, goalCond;
 		double parameter;
 		goalCond = "Goal_Condition:";
-		while(cfgFile >> token){ // Ignore instructions to begin reading
-			if (token == "***") {
+		while(cfgFile >> token){ //Ignore instructions to begin reading
+			if (token == "***"){
 				break;
 			}
 		}
@@ -107,31 +109,33 @@ namespace dgal {
 				cfgFile >> condition >> parameter;
 				if (condition == "numGen"){
 					maxGeneration = parameter;
-					dgal::log("Goal Condition set: Max number of generations = " + std::to_string(parameter));
+					dgal::log("Goal Condition set: Max number of generations = <to_string>parameter");// + std::to_string(parameter))
 				}
 				else if (condition == "fitnessLevel"){
 					maxFitnessLevel = parameter;
-					dgal::log("Goal Condition set: Fitness level by most fit individual = " + std::to_string(parameter));
+					dgal::log("Goal Condition set: Fitness level by most fit individual = <to_string>parameter");// + std::to_string(parameter))
 				}
 				else if (condition == "time"){
 					maxTime = parameter;
-					dgal::log("Goal Condition set: Max amount of time can pass in seconds = " + std::to_string(parameter));
+					dgal::log("Goal Condition set: Max amount of time can pass in seconds = <to_string>parameter");// + std::to_string(parameter))
+				}
+				else if (condition == "manual"){
+					//TODO: implement
 				}
 			}
 		}
 		cfgFile.close();
-		dgal::log("Done Reading Config File");
-
 		bufferDirty.store(false);
-		// if(generationNum == 1){
+		if(generationNum == 1){
 			generateNewIndividuals();
-		// }
+		}
 
 		std::srand(std::time(0));
+//		std::thread t(&population<indType, messagingType>::initiateMessaging, this);
 		std::thread t(&population<indType>::getBests, this);
 		runGeneration();
 		stop = true;
-		t.join();
+//		t.join();
 	}
 	
 	template <typename indType> void population<indType>::sendBests(){
@@ -207,7 +211,7 @@ namespace dgal {
 
 		rc = connect(fd, (struct sockaddr *) res->ai_addr, res->ai_addrlen);
 		if(rc == -1){
-//			std::cerr << "Could not connect socket (" << strerror(errno) << "), proceding without connecting to server...\n";
+			std::cerr << "Could not connect socket (" << strerror(errno) << "), proceding without connecting to server...\n";
 			shutdown(fd, SHUT_RDWR);
 			close(fd);
 			fd = -1;
@@ -392,10 +396,6 @@ namespace dgal {
 			nextGeneration();
 			runGeneration();
 		}
-		else{
-			std::cout<<"Best Fit Farm Individuals"<<std::endl;
-			individuals[0]->print();
-		}
 	}
 
 	template <typename indType> bool population<indType>::checkGoals() const{
@@ -407,9 +407,7 @@ namespace dgal {
 		{
 			if(individuals[0]->getFitness() >= maxFitnessLevel)
 			{
-				dgal::log("Goal Satisfied: Fitness Level achieved");
-				//REENTER THIS LINE IN!!!!
-				// dgal::log("Goal Satisfied: Fitness Level achieved (local node)");
+				dgal::log("Goal Satisfied: Fitness Level achieved (local node)");
 				return true;
 			}
 			//Assuming Individual Buffer is not sorted. Can be changed later if sorted
